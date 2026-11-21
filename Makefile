@@ -25,6 +25,8 @@ install: build
 	@rm -rf "/Applications/$(APP_NAME).app"
 	@cp -R "$(APP_PATH)" "/Applications/$(APP_NAME).app"
 	@xattr -dr com.apple.quarantine "/Applications/$(APP_NAME).app" 2>/dev/null || true
+	@/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "/Applications/$(APP_NAME).app" 2>/dev/null || true
+	@pluginkit -a "/Applications/$(APP_NAME).app/Contents/PlugIns/$(APP_NAME)Widget.appex" 2>/dev/null || true
 	@open "/Applications/$(APP_NAME).app"
 	@echo "Done! Add the desktop widget via Notification Center -> Edit Widgets -> MacChargingSpeed."
 

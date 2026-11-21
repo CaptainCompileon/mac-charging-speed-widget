@@ -36,6 +36,27 @@ jobs:
             AD_HOC_CODE_SIGNING_ALLOWED=YES \
             build
 
+      - name: Verify App & WidgetKit Packaging, Plists, and Entitlements
+        run: |
+          APP_PATH="build/Build/Products/Release/MacChargingSpeed.app"
+          EXT_PATH="$APP_PATH/Contents/PlugIns/MacChargingSpeedWidget.appex"
+
+          echo "=== App Info.plist ==="
+          plutil -p "$APP_PATH/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Print :LSUIElement" "$APP_PATH/Contents/Info.plist" | grep -q "true"
+
+          echo "=== Widget Info.plist ==="
+          plutil -p "$EXT_PATH/Contents/Info.plist"
+          EXT_POINT=$(/usr/libexec/PlistBuddy -c "Print :NSExtension:NSExtensionPointIdentifier" "$EXT_PATH/Contents/Info.plist")
+          echo "NSExtensionPointIdentifier = $EXT_POINT"
+          test "$EXT_POINT" = "com.apple.widgetkit-extension"
+
+          echo "=== Code Signing & Entitlements ==="
+          codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+          codesign -d --entitlements :- "$APP_PATH" 2>&1 | grep -q "com.apple.security.app-sandbox"
+          codesign -d --entitlements :- "$EXT_PATH" 2>&1 | grep -q "com.apple.security.app-sandbox"
+          echo "✅ Verified WidgetKit extension point and sandbox entitlements."
+
       - name: Package DMG & ZIP
         run: |
           APP_PATH="build/Build/Products/Release/MacChargingSpeed.app"
