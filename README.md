@@ -18,10 +18,11 @@ Inspect real-time charging wattage, voltage, amperage, USB-PD contracts, system-
 </p>
 
 <p>
+  <a href="https://captaincompileon.github.io/mac-charging-speed-widget/"><strong>Live Webpage</strong></a> &nbsp;&middot;&nbsp;
   <a href="#install-on-your-mac">Install on Mac</a> &nbsp;&middot;&nbsp;
   <a href="#desktop-widgets--menu-bar">Screenshots</a> &nbsp;&middot;&nbsp;
   <a href="#power-user-telemetry">Telemetry</a> &nbsp;&middot;&nbsp;
-  <a href="#publish-the-landing-page">Landing Page &amp; Vercel</a>
+  <a href="#publish-the-landing-page">Deploy to Vercel</a>
 </p>
 
 <br />
