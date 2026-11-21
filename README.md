@@ -107,9 +107,14 @@ Every push to `main` compiles a ready-to-install macOS `.dmg` and `.app.zip` on 
 
 ### Adding the Desktop Widgets
 
-1. Launch **MacChargingSpeed** once from `/Applications`.
+1. Drag `MacChargingSpeed.app` into `/Applications` and launch it once.
 2. Right-click anywhere on your macOS desktop and click **Edit Widgets…**
 3. Search for **MacChargingSpeed** and drag the **Small**, **Medium**, or **Large** widget onto your desktop or Notification Center.
+
+> **Don't see the widgets immediately after replacing the app?** Run this one-liner to refresh macOS LaunchServices & PlugInKit registration:
+> ```bash
+> /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f /Applications/MacChargingSpeed.app && pluginkit -a /Applications/MacChargingSpeed.app/Contents/PlugIns/MacChargingSpeedWidget.appex
+> ```
 
 ---
 
