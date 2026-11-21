@@ -1,0 +1,87 @@
+name: MacChargingSpeed
+options:
+  bundleIdPrefix: com.captaincompileon
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    DEVELOPMENT_TEAM: ""
+    ENABLE_HARDENED_RUNTIME: YES
+
+targets:
+  MacChargingSpeed:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+        excludes:
+          - Info.plist
+          - MacChargingSpeed.entitlements
+      - path: Shared
+    info:
+      path: App/Info.plist
+    entitlements:
+      path: App/MacChargingSpeed.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.captaincompileon.MacChargingSpeed
+        PRODUCT_NAME: MacChargingSpeed
+        INFOPLIST_FILE: App/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+    dependencies:
+      - target: MacChargingSpeedWidget
+        embed: true
+        codeSign: true
+      - sdk: IOKit.framework
+      - sdk: ServiceManagement.framework
+      - sdk: WidgetKit.framework
+
+  MacChargingSpeedWidget:
+    type: app-extension
+    platform: macOS
+    sources:
+      - path: Widget
+        excludes:
+          - Info.plist
+          - MacChargingSpeedWidget.entitlements
+      - path: Shared
+    info:
+      path: Widget/Info.plist
+    entitlements:
+      path: Widget/MacChargingSpeedWidget.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.captaincompileon.MacChargingSpeed.Widget
+        PRODUCT_NAME: MacChargingSpeedWidget
+        INFOPLIST_FILE: Widget/Info.plist
+        SKIP_INSTALL: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) WIDGET_EXTENSION"
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks @executable_path/../../../../Frameworks"
+    dependencies:
+      - sdk: IOKit.framework
+      - sdk: SwiftUI.framework
+      - sdk: WidgetKit.framework
+      - sdk: AppIntents.framework
+
+schemes:
+  MacChargingSpeed:
+    build:
+      targets:
+        MacChargingSpeed: all
+        MacChargingSpeedWidget: all
+    run:
+      config: Debug
+    archive:
+      config: Release

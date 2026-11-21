@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MacChargingSpeed — Liquid Glass Power Telemetry for macOS</title>
+  <meta name="description" content="Native macOS Tahoe Liquid Glass desktop widgets and live menu bar monitor showing real-time charging wattage, voltage, amperage, power flow split, charging curves, and battery health.">
+  <meta property="og:title" content="MacChargingSpeed — Liquid Glass Power Telemetry for macOS">
+  <meta property="og:description" content="See your MacBook's real charging watts, USB-PD contract, system vs. battery power split, charging curve, and battery health directly from IOKit.">
+  <meta property="og:image" content="assets/hero-desktop.jpg">
+  <link rel="icon" type="image/png" href="assets/app-icon.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <div class="container nav-inner">
+      <a href="#top" class="brand">
+        <img src="assets/app-icon.png" alt="MacChargingSpeed icon" class="brand-icon">
+        <span>MacChargingSpeed</span>
+      </a>
+
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#interactive">Live Demo</a>
+        <a href="#widgets">Widgets</a>
+        <a href="#telemetry">Telemetry</a>
+        <a href="#install">Install</a>
+      </nav>
+
+      <div class="nav-actions">
+        <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget" class="btn btn-secondary btn-sm" target="_blank" rel="noopener">GitHub</a>
+        <a href="#install" class="btn btn-primary btn-sm">Install on Mac</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-icon-wrap">
+          <img src="assets/app-icon.png" alt="MacChargingSpeed Liquid Glass App Icon" class="hero-icon">
+        </div>
+
+        <h1>Power telemetry, distilled to pure glass.</h1>
+        <p class="hero-lead">
+          Native macOS Tahoe Liquid Glass desktop widgets and a 1-second live menu bar monitor.
+          Inspect exact charging wattage, voltage, amperage, power flow split, and battery health straight from IOKit.
+        </p>
+
+        <div class="hero-cta">
+          <a href="#install" class="btn btn-primary">Install on macOS</a>
+          <a href="#interactive" class="btn btn-secondary">Try Interactive Demo</a>
+          <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget/actions" class="btn btn-secondary" target="_blank" rel="noopener">Download DMG</a>
+        </div>
+
+        <p class="hero-meta">
+          Native SwiftUI &amp; WidgetKit &middot; Apple Silicon &amp; Intel &middot; macOS 14 Sonoma, 15 Sequoia &amp; 26 Tahoe &middot; Open Source MIT
+        </p>
+
+        <figure class="hero-stage" aria-label="MacChargingSpeed desktop widgets and menu bar popover on macOS Tahoe">
+          <img src="assets/hero-desktop.jpg" alt="MacChargingSpeed Liquid Glass desktop widgets and menu bar popover running on macOS Tahoe">
+        </figure>
+      </div>
+    </section>
+
+    <!-- Interactive Liquid Glass Simulator -->
+    <section id="interactive" class="section section-dark">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Interactive Preview</p>
+          <h2>See how your charger actually performs.</h2>
+          <p>
+            Switch between real-world MacBook power scenarios below to preview how the desktop widgets and live menu bar popover adapt in real time.
+          </p>
+        </div>
+
+        <div class="sim-controls" role="tablist" aria-label="Power scenario selector">
+          <button id="preset-fast" class="sim-tab is-active" data-preset="fast" role="tab" aria-selected="true">140W MagSafe Fast Charge</button>
+          <button id="preset-desk" class="sim-tab" data-preset="desk" role="tab" aria-selected="false">67W USB-C Desk</button>
+          <button id="preset-hold" class="sim-tab" data-preset="hold" role="tab" aria-selected="false">80% Optimized Hold</button>
+          <button id="preset-battery" class="sim-tab" data-preset="battery" role="tab" aria-selected="false">On Battery</button>
+        </div>
+
+        <div class="sim-canvas">
+          <!-- Simulated macOS Menu Bar -->
+          <div class="sim-menubar" aria-hidden="true">
+            <div class="sim-menubar-left">
+              <span>&#63743;</span>
+              <span>Finder</span>
+              <span>File</span>
+              <span>Edit</span>
+              <span>View</span>
+              <span>Window</span>
+            </div>
+            <div class="sim-menubar-right">
+              <span>Wi-Fi</span>
+              <span class="sim-menubar-pill" id="sim-menubar-label">&#9889; 94.2W</span>
+              <span>10:09 AM</span>
+            </div>
+          </div>
+
+          <div class="sim-stage-grid">
+            <!-- Left: Desktop Widgets + Adapter Telemetry -->
+            <div class="sim-widgets-col">
+              <!-- Medium Widget -->
+              <article class="liquid-glass widget-medium" aria-label="Medium Desktop Widget preview">
+                <div>
+                  <div class="widget-tag-row" id="w-med-phase" style="color: var(--accent-green);">
+                    <span>&#9889; Fast Charge</span>
+                  </div>
+                  <div class="widget-watts-lg"><span id="w-med-watts" style="font-size:inherit;color:inherit;margin:0;">94.2</span><span>W</span></div>
+                  <div class="widget-va" id="w-med-va">20.0V &middot; 4.71A &middot; 78%</div>
+
+                  <div style="margin-top: 16px;">
+                    <div class="flow-track">
+                      <div class="flow-seg-sys" id="w-med-sysbar" style="width: 26%;"></div>
+                      <div class="flow-seg-bat" id="w-med-batbar" style="width: 74%;"></div>
+                    </div>
+                    <div class="flow-legend">
+                      <span><i class="dot" style="background: var(--accent-sky);"></i><span id="w-med-sys">System 24.8W</span></span>
+                      <span><i class="dot" style="background: var(--accent-green);"></i><span id="w-med-bat">Battery +69.4W</span></span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="widget-spark-col">
+                  <span class="pd-badge" id="w-med-pd">140W PD</span>
+                  <svg class="sparkline-svg" viewBox="0 0 180 68" preserveAspectRatio="none" aria-label="Charging curve sparkline">
+                    <defs>
+                      <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" id="spark-stop-top" stop-color="#28cd6e" stop-opacity="0.38" />
+                        <stop offset="100%" id="spark-stop-bot" stop-color="#28cd6e" stop-opacity="0.0" />
+                      </linearGradient>
+                    </defs>
+                    <path id="spark-area" fill="url(#sparkFill)" d=""></path>
+                    <path id="spark-line" fill="none" stroke="#28cd6e" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" d=""></path>
+                    <circle id="spark-dot" cx="174" cy="14" r="3.8" fill="#28cd6e" stroke="#ffffff" stroke-width="1.4"></circle>
+                  </svg>
+                  <div style="font-size: 11px; color: rgba(255,255,255,0.64);" id="w-med-eta">28m to full &middot; 98%</div>
+                </div>
+              </article>
+
+              <!-- Small Widget + Live Adapter Contract Inspector -->
+              <div class="widget-bottom-row">
+                <article class="liquid-glass widget-small" aria-label="Small Desktop Widget preview">
+                  <div class="ring-wrap">
+                    <svg viewBox="0 0 138 138">
+                      <circle cx="69" cy="69" r="58" fill="none" stroke="rgba(255,255,255,0.12)" stroke-width="10"></circle>
+                      <circle id="w-small-ring" cx="69" cy="69" r="58" fill="none" stroke="#28cd6e" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="80.2" style="transition: stroke-dashoffset 0.5s cubic-bezier(0.22,1,0.36,1), stroke 0.3s ease;"></circle>
+                    </svg>
+                    <div class="ring-center">
+                      <div class="ring-watts" id="w-small-watts">94.2W</div>
+                      <div class="ring-pct" id="w-small-pct">78%</div>
+                      <div class="ring-va" id="w-small-va">20.0V &middot; 4.7A</div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="liquid-glass adapter-card-live" aria-label="Adapter hardware details">
+                  <h3 id="w-adapter-title">Apple 140W USB-C Power Adapter</h3>
+                  <div class="kv-list">
+                    <div class="kv-row"><span>Protocol</span><span id="w-adapter-proto">USB-PD EPR</span></div>
+                    <div class="kv-row"><span>Negotiated Contract</span><span id="w-adapter-contract">20.0 V &middot; 5.00 A (140W)</span></div>
+                    <div class="kv-row"><span>Pack Cells</span><span id="w-adapter-cells">4.23V &middot; 4.23V &middot; 4.22V (&Delta; 3 mV)</span></div>
+                    <div class="kv-row"><span>Thermal Pressure</span><span id="w-adapter-thermal">Nominal</span></div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <!-- Right: Menu Bar Popover -->
+            <aside class="liquid-glass popover-card" aria-label="Menu Bar Popover preview">
+              <div class="popover-head">
+                <div>
+                  <div class="popover-title">MacChargingSpeed</div>
+                  <div class="popover-eta" id="p-eta">28m to full</div>
+                </div>
+                <span class="phase-chip" id="p-phase">Fast Charge</span>
+              </div>
+
+              <div class="glass-subtile popover-hero">
+                <div class="popover-watts"><span id="p-watts" style="font-size:inherit;color:inherit;margin:0;">94.2</span><span>W</span></div>
+                <div class="popover-pills">
+                  <span class="mini-pill" id="p-volts">20.00 V</span>
+                  <span class="mini-pill" id="p-amps">4.71 A</span>
+                  <span class="mini-pill" id="p-pct">78%</span>
+                </div>
+              </div>
+
+              <div class="glass-subtile flow-box">
+                <div class="flow-head">
+                  <span>Power Flow</span>
+                  <span id="p-in">In 94.2W</span>
+                </div>
+                <div class="flow-track">
+                  <div class="flow-seg-sys" id="p-sysbar" style="width: 26%;"></div>
+                  <div class="flow-seg-bat" id="p-batbar" style="width: 74%;"></div>
+                </div>
+                <div class="flow-legend">
+                  <span><i class="dot" style="background: var(--accent-sky);"></i><span id="p-sys">System 24.8W</span></span>
+                  <span><i class="dot" style="background: var(--accent-green);"></i><span id="p-bat">Battery +69.4W</span></span>
+                </div>
+              </div>
+
+              <div class="stat-trio">
+                <div class="glass-subtile stat-tile">
+                  <div class="stat-tile-label">Health</div>
+                  <div class="stat-tile-val" id="p-health">98%</div>
+                  <div class="stat-tile-sub">5954 mAh</div>
+                </div>
+                <div class="glass-subtile stat-tile">
+                  <div class="stat-tile-label">Cycles</div>
+                  <div class="stat-tile-val" id="p-cycles">42</div>
+                  <div class="stat-tile-sub">of 1000</div>
+                </div>
+                <div class="glass-subtile stat-tile">
+                  <div class="stat-tile-label">Temp</div>
+                  <div class="stat-tile-val" id="p-temp">31.4&deg;C</div>
+                  <div class="stat-tile-sub" id="p-thermal">Nominal</div>
+                </div>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Widget Gallery Section -->
+    <section id="widgets" class="section section-white">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Desktop Widgets</p>
+          <h2>Three sizes. One cohesive glass language.</h2>
+          <p>
+            Built with native WidgetKit and macOS 26 Tahoe Liquid Glass — with automatic specular vibrancy rendering on macOS 14 Sonoma and macOS 15 Sequoia.
+          </p>
+        </div>
+
+        <figure class="showcase-frame">
+          <img src="assets/widget-gallery.jpg" alt="Small, Medium, and Large MacChargingSpeed desktop widgets rendered in Apple Liquid Glass">
+        </figure>
+      </div>
+    </section>
+
+    <!-- Menu Bar Detail Split -->
+    <section class="section">
+      <div class="container split-feature">
+        <div class="split-feature-copy">
+          <p class="eyebrow">Menu Bar Live Monitor</p>
+          <h2>Every watt, updated every second.</h2>
+          <p>
+            While macOS desktop widgets refresh periodically to preserve battery, the companion menu bar monitor reads AppleSmartBattery directly through IOKit every second — zero shell subprocesses, near-zero CPU wakeups.
+          </p>
+
+          <ul class="spec-list">
+            <li>
+              <strong>Zero Subprocesses</strong>
+              <span>Calls <code>IORegistryEntryCreateCFProperties</code> in-process instead of spawning <code>ioreg</code>.</span>
+            </li>
+            <li>
+              <strong>Adaptive Formats</strong>
+              <span>Switch your menu bar readout between Watts, Watts + %, Watts + Amps, or Icon Only.</span>
+            </li>
+            <li>
+              <strong>On-Demand Sync</strong>
+              <span>Power state changes and manual refreshes immediately push updates to your desktop widgets.</span>
+            </li>
+          </ul>
+        </div>
+
+        <figure class="showcase-frame">
+          <img src="assets/menubar-popover.jpg" alt="Close-up of the MacChargingSpeed translucent menu bar popover">
+        </figure>
+      </div>
+    </section>
+
+    <!-- Power-User Telemetry Grid -->
+    <section id="telemetry" class="section section-white">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Power-User Telemetry</p>
+          <h2>The hardware truth behind the battery icon.</h2>
+          <p>
+            macOS hides negotiated wattage, cable bottlenecks, and cell health behind simplified labels. MacChargingSpeed surfaces the raw controller telemetry cleanly.
+          </p>
+        </div>
+
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-num">01 / LIVE POWER</div>
+            <h3>Watts, Volts &amp; Amps</h3>
+            <p>Track instantaneous charging watts, USB-PD input voltage and amperage, and signed battery pack current so you can immediately spot a slow cable or throttled port.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-num">02 / POWER FLOW</div>
+            <h3>System vs. Battery Split</h3>
+            <p>Reads Apple Silicon <code>PowerTelemetryData</code> to separate incoming wall watts into live Mac system draw versus net power actually reaching your battery cells.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-num">03 / CHARGING CURVE</div>
+            <h3>Rolling Wattage Sparkline</h3>
+            <p>Visualize fast-charge ramp-up, thermal tapering, and the 80% trickle drop-off in a smooth real-time curve shared between the menu bar popover and widgets.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-num">04 / BATTERY HEALTH</div>
+            <h3>Raw Capacity &amp; Cell Balance</h3>
+            <p>Compares <code>AppleRawMaxCapacity</code> against factory <code>DesignCapacity</code>, tracks cycle count, pack temperature (&deg;C/&deg;F), and individual cell voltage delta (mV).</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-num">05 / USB-PD INSPECTOR</div>
+            <h3>Adapter Hardware Details</h3>
+            <p>Inspect connected charger name, manufacturer, USB-PD / EPR protocol, negotiated voltage &amp; current contract, headroom utilization, and adapter serial number.</p>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-num">06 / NATIVE DESIGN</div>
+            <h3>Tahoe Liquid Glass Ready</h3>
+            <p>Uses native SwiftUI <code>.glassEffect</code> and <code>GlassEffectContainer</code> on macOS 26+, with hand-tuned specular vibrancy fallback on macOS 14 and 15.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Installation Section -->
+    <section id="install" class="section section-dark">
+      <div class="container">
+        <div class="section-header">
+          <p class="eyebrow">Get Started</p>
+          <h2>Install on your Mac in one command.</h2>
+          <p>
+            Build natively from source directly into <code>/Applications</code>, or grab the pre-built DMG from GitHub Actions.
+          </p>
+        </div>
+
+        <div class="install-card">
+          <div style="font-size: 13px; color: var(--ink-on-dark-muted);">Run in macOS Terminal (requires Xcode &amp; Homebrew):</div>
+          <div class="terminal-box">
+            <code id="install-cmd">curl -fsSL https://raw.githubusercontent.com/CaptainCompileon/mac-charging-speed-widget/main/scripts/install.sh | bash</code>
+            <button id="copy-install" class="copy-btn" type="button">Copy</button>
+          </div>
+
+          <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+            <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget" class="btn btn-light" target="_blank" rel="noopener">View Source on GitHub</a>
+            <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget/actions" class="btn btn-ghost-dark" target="_blank" rel="noopener">Download Prebuilt DMG</a>
+          </div>
+
+          <div class="install-steps">
+            <div class="install-step">
+              <strong>1. Build &amp; Launch</strong>
+              <p>Generates the Xcode project via XcodeGen, compiles the app + WidgetKit extension, and opens it in your menu bar.</p>
+            </div>
+            <div class="install-step">
+              <strong>2. Add Desktop Widgets</strong>
+              <p>Right-click your desktop &rarr; <em>Edit Widgets</em> &rarr; search <em>MacChargingSpeed</em> and pick Small, Medium, or Large.</p>
+            </div>
+            <div class="install-step">
+              <strong>3. Customize Telemetry</strong>
+              <p>Open Settings from the menu bar popover to toggle &deg;C/&deg;F, polling speed, menu bar format, and Launch at Login.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>&copy; 2026 MacChargingSpeed. Released under the MIT License.</span>
+      <div class="footer-links">
+        <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget" target="_blank" rel="noopener">Repository</a>
+        <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget/issues" target="_blank" rel="noopener">Issues</a>
+        <a href="https://github.com/CaptainCompileon/mac-charging-speed-widget/actions" target="_blank" rel="noopener">macOS Builds</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
