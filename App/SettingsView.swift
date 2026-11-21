@@ -3,6 +3,9 @@ import SwiftUI
 
 struct SettingsView: View {
     @Bindable var monitor: PowerMonitor
+    @Bindable var updater: UpdateManager
+    let onOpenUpdatePrompt: () -> Void
+
     @State private var launchAtLogin: Bool = (SMAppService.mainApp.status == .enabled)
     @State private var loginStatusError: String?
 
@@ -22,6 +25,31 @@ struct SettingsView: View {
                 }
 
                 Toggle("Show Temperature in Fahrenheit (°F)", isOn: $monitor.useFahrenheit)
+            }
+
+            Section("Software Updates") {
+                Toggle("Automatic Background Updates", isOn: $updater.automaticUpdatesEnabled)
+
+                Picker("Check Frequency", selection: $updater.checkIntervalHours) {
+                    Text("Every 2 hours").tag(2)
+                    Text("Every 6 hours").tag(6)
+                    Text("Once a day").tag(24)
+                }
+                .disabled(!updater.automaticUpdatesEnabled)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(updateStatusLine)
+                            .font(.system(size: 12))
+                        Text(updateSecondaryLine)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button(updater.hasUpdateAvailable ? "Update Now…" : "Check Now…") {
+                        onOpenUpdatePrompt()
+                    }
+                }
             }
 
             Section("System") {
@@ -50,7 +78,21 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 420, height: 310)
+        .frame(width: 450, height: 470)
+    }
+
+    private var updateStatusLine: String {
+        if let release = updater.availableRelease {
+            return "Version \(release.version) is available (installed: \(updater.currentVersion))"
+        }
+        return "Installed version \(updater.currentVersion) (build \(updater.currentBuild))"
+    }
+
+    private var updateSecondaryLine: String {
+        if let checked = updater.lastCheckedDate {
+            return "Last checked \(checked.formatted(date: .abbreviated, time: .shortened)) · Prompts on cold start"
+        }
+        return "Prompts on cold start with update status"
     }
 
     private func updateLaunchAtLogin(_ enabled: Bool) {

@@ -54,8 +54,9 @@ jobs:
           echo "=== Code Signing & Entitlements ==="
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           codesign -d --entitlements :- "$APP_PATH" 2>&1 | grep -q "com.apple.security.app-sandbox"
+          codesign -d --entitlements :- "$APP_PATH" 2>&1 | grep -q "com.apple.security.network.client"
           codesign -d --entitlements :- "$EXT_PATH" 2>&1 | grep -q "com.apple.security.app-sandbox"
-          echo "✅ Verified WidgetKit extension point and sandbox entitlements."
+          echo "✅ Verified WidgetKit extension point, network client, and sandbox entitlements."
 
       - name: Package DMG & ZIP
         run: |

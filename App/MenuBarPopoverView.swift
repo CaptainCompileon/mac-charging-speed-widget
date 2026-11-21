@@ -3,6 +3,9 @@ import SwiftUI
 
 struct MenuBarPopoverView: View {
     @Bindable var monitor: PowerMonitor
+    @Bindable var updater: UpdateManager
+    let onCheckUpdates: () -> Void
+
     @Environment(\.openWindow) private var openWindow
     @State private var showHardwareDetails = false
 
@@ -13,6 +16,9 @@ struct MenuBarPopoverView: View {
         AdaptiveGlassGroup(spacing: 10) {
             VStack(spacing: 12) {
                 headerRow
+                if let release = updater.availableRelease {
+                    updateAvailableBanner(release)
+                }
                 heroWattsCard
                 powerFlowCard
                 sparklineCard
@@ -23,6 +29,49 @@ struct MenuBarPopoverView: View {
             .padding(14)
         }
         .frame(width: 344)
+    }
+
+    // MARK: - Update Available Banner
+
+    private func updateAvailableBanner(_ release: AppRelease) -> some View {
+        Button {
+            onCheckUpdates()
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(PowerPalette.chargeGreen)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Version \(release.version) available")
+                        .font(.system(size: 11.5, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text(isReadyInCache ? "Ready to install" : "Click to review and update")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer(minLength: 4)
+
+                Text("Update")
+                    .font(.system(size: 10.5, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 4)
+                    .background(PowerPalette.chargeGreen, in: Capsule())
+            }
+            .padding(.horizontal, 11)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .liquidGlassTile(cornerRadius: 12, interactive: true)
+        .accessibilityLabel("Update available: version \(release.version)")
+    }
+
+    private var isReadyInCache: Bool {
+        if case .readyToInstall = updater.state { return true }
+        return false
     }
 
     // MARK: - Header
@@ -327,6 +376,17 @@ struct MenuBarPopoverView: View {
             Spacer()
 
             Button {
+                onCheckUpdates()
+            } label: {
+                Image(systemName: updater.hasUpdateAvailable ? "arrow.down.circle.fill" : "arrow.down.circle")
+                    .font(.system(size: 11.5, weight: .medium))
+                    .foregroundStyle(updater.hasUpdateAvailable ? PowerPalette.chargeGreen : .primary)
+            }
+            .buttonStyle(.borderless)
+            .help("Check for updates")
+            .accessibilityLabel("Check for updates")
+
+            Button {
                 monitor.refreshNow(forceWidgetReload: true)
             } label: {
                 Image(systemName: "arrow.clockwise")
@@ -334,6 +394,7 @@ struct MenuBarPopoverView: View {
             }
             .buttonStyle(.borderless)
             .help("Refresh telemetry & sync desktop widgets")
+            .accessibilityLabel("Refresh telemetry")
 
             Button {
                 NSApp.activate(ignoringOtherApps: true)
@@ -344,6 +405,7 @@ struct MenuBarPopoverView: View {
             }
             .buttonStyle(.borderless)
             .help("Settings")
+            .accessibilityLabel("Open settings")
 
             Button {
                 NSApplication.shared.terminate(nil)
@@ -353,11 +415,8 @@ struct MenuBarPopoverView: View {
             }
             .buttonStyle(.borderless)
             .help("Quit MacChargingSpeed")
+            .accessibilityLabel("Quit MacChargingSpeed")
         }
         .padding(.top, 2)
     }
-}
-
-#Preview {
-    MenuBarPopoverView(monitor: PowerMonitor())
 }

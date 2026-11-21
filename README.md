@@ -77,6 +77,7 @@ Because macOS throttles desktop widget timelines to save energy, the companion m
 | **True Battery Health** | `AppleRawMaxCapacity / DesignCapacity` | Exact chemical health (`%` & `mAh`), cycle count vs. design cycles, and individual cell voltage imbalance (`Δ mV`). |
 | **Thermals & Power State** | `Temperature`, `ProcessInfo.thermalState` | Live battery pack temperature (`°C` or `°F`), thermal pressure level, and Low Power Mode state. |
 | **USB-PD Adapter Inspector** | `AdapterDetails` / `AppleRawAdapterDetails` | Charger name, manufacturer, USB-PD / EPR protocol, negotiated `V / A / W` contract, utilization %, and serial number. |
+| **Automatic Background Updates** | GitHub Releases API + Background Pre-fetch | Prompts on every cold start with version status & release notes, pre-downloads updates in the background when enabled, and lets you toggle auto-updates inline or in Settings. |
 
 ---
 
