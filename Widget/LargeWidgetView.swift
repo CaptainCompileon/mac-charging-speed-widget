@@ -85,9 +85,10 @@ struct LargeWidgetView: View {
             // Power Flow Split
             VStack(alignment: .leading, spacing: 5) {
                 HStack {
-                    Text("Power Flow")
+                    Text(t.powerFlowMode.summary)
                         .font(.system(size: 10.5, weight: .semibold))
                         .foregroundStyle(.secondary)
+                        .lineLimit(1)
                     Spacer()
                     if let util = t.adapterUtilization, let maxW = t.adapter?.maxWatts {
                         Text(String(format: "%.0f%% of %dW", util * 100, maxW))
@@ -96,15 +97,15 @@ struct LargeWidgetView: View {
                             .monospacedDigit()
                     }
                 }
-                PowerFlowBarView(telemetry: t, compact: false)
+                PowerFlowBarView(telemetry: t, compact: true)
             }
 
             // Bottom Health, Cycles & Thermals Tiles
             HStack(spacing: 8) {
                 statCard(
                     label: "Health",
-                    value: String(format: "%.0f%%", t.batteryHealthPercent),
-                    detail: "\(t.maxCapacityMah) mAh"
+                    value: t.formattedHealthPercent,
+                    detail: t.formattedMaxCapacity
                 )
                 statCard(
                     label: "Cycles",
@@ -112,9 +113,11 @@ struct LargeWidgetView: View {
                     detail: "of \(t.designCycleCount)"
                 )
                 statCard(
-                    label: "Temp",
-                    value: t.formattedTemperature(useFahrenheit: entry.useFahrenheit),
-                    detail: t.thermalLevel.rawValue
+                    label: t.temperatureC != nil ? "Temp" : "Thermal",
+                    value: t.temperatureC != nil
+                        ? t.formattedTemperature(useFahrenheit: entry.useFahrenheit)
+                        : t.thermalLevel.rawValue,
+                    detail: t.temperatureC != nil ? t.thermalLevel.rawValue : "Sensor N/A"
                 )
             }
         }

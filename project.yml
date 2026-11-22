@@ -10,8 +10,8 @@ settings:
   base:
     SWIFT_VERSION: "6.0"
     MACOSX_DEPLOYMENT_TARGET: "14.0"
-    MARKETING_VERSION: "1.1.0"
-    CURRENT_PROJECT_VERSION: "3"
+    MARKETING_VERSION: "1.1.1"
+    CURRENT_PROJECT_VERSION: "4"
     CODE_SIGN_STYLE: Manual
     CODE_SIGN_IDENTITY: "-"
     DEVELOPMENT_TEAM: ""
@@ -69,13 +69,33 @@ targets:
       - sdk: WidgetKit.framework
       - sdk: AppIntents.framework
 
+  MacChargingSpeedTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests
+      - path: Shared
+      - path: App/UpdateManager.swift
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.captaincompileon.MacChargingSpeedTests
+        PRODUCT_NAME: MacChargingSpeedTests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - sdk: IOKit.framework
+
 schemes:
   MacChargingSpeed:
     build:
       targets:
         MacChargingSpeed: all
         MacChargingSpeedWidget: all
+        MacChargingSpeedTests: [test]
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - MacChargingSpeedTests
     archive:
       config: Release

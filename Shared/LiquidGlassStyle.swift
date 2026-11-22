@@ -158,7 +158,7 @@ public enum PowerPalette {
         switch phase {
         case .fastCharging, .charging, .full:
             return chargeGreen
-        case .trickleCharging, .optimizedHold:
+        case .trickleCharging, .optimizedHold, .batteryAssisting:
             return cautionAmber
         case .acPassthrough:
             return systemBlue

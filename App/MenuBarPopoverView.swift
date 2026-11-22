@@ -169,21 +169,14 @@ struct MenuBarPopoverView: View {
     // MARK: - Power Flow Card
 
     private var powerFlowCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
+        VStack(alignment: .leading, spacing: 9) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Power Flow")
                     .font(.system(size: 11.5, weight: .semibold))
-                Spacer()
-                if t.isExternalConnected {
-                    Text(String(format: "In %.1fW", t.adapterInputWatts))
-                        .font(.system(size: 10.5, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                } else {
-                    Text("Unplugged")
-                        .font(.system(size: 10.5, weight: .medium))
-                        .foregroundStyle(.secondary)
-                }
+                Text(t.powerFlowMode.summary)
+                    .font(.system(size: 10.5))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             PowerFlowBarView(telemetry: t, compact: false)
@@ -224,10 +217,10 @@ struct MenuBarPopoverView: View {
         HStack(spacing: 8) {
             metricTile(
                 title: "Health",
-                value: String(format: "%.0f%%", t.batteryHealthPercent),
-                subtitle: "\(t.maxCapacityMah) mAh",
+                value: t.formattedHealthPercent,
+                subtitle: t.formattedMaxCapacity,
                 icon: "heart.fill",
-                tint: t.batteryHealthPercent >= 85 ? PowerPalette.chargeGreen : PowerPalette.cautionAmber
+                tint: (t.batteryHealthPercent ?? 100) >= 85 ? PowerPalette.chargeGreen : PowerPalette.cautionAmber
             )
             metricTile(
                 title: "Cycles",
@@ -237,9 +230,11 @@ struct MenuBarPopoverView: View {
                 tint: PowerPalette.systemBlue
             )
             metricTile(
-                title: "Temp",
-                value: t.formattedTemperature(useFahrenheit: monitor.useFahrenheit),
-                subtitle: t.thermalLevel.rawValue,
+                title: t.temperatureC != nil ? "Temp" : "Thermal",
+                value: t.temperatureC != nil
+                    ? t.formattedTemperature(useFahrenheit: monitor.useFahrenheit)
+                    : t.thermalLevel.rawValue,
+                subtitle: t.temperatureC != nil ? t.thermalLevel.rawValue : "Sensor N/A",
                 icon: "thermometer.medium",
                 tint: PowerPalette.thermalColor(for: t.thermalLevel)
             )
@@ -260,7 +255,7 @@ struct MenuBarPopoverView: View {
                 .font(.system(size: 16, weight: .bold, design: .rounded))
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.75)
             Text(subtitle)
                 .font(.system(size: 9.5))
                 .foregroundStyle(.secondary)
@@ -328,7 +323,7 @@ struct MenuBarPopoverView: View {
                     }
 
                     detailRow("Pack Voltage", String(format: "%.3f V (%.2f A)", t.voltageV, t.amperageA))
-                    detailRow("Capacity", "\(t.currentCapacityMah) / \(t.maxCapacityMah) mAh (Design \(t.designCapacityMah))")
+                    detailRow("Capacity", t.formattedCapacityDetail)
 
                     if !t.cellVoltagesMv.isEmpty {
                         let cells = t.cellVoltagesMv.map { String(format: "%.2fV", Double($0) / 1000.0) }.joined(separator: " · ")

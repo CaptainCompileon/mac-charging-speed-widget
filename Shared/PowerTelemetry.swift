@@ -7,6 +7,7 @@ public enum ChargingPhase: String, Codable, Sendable, CaseIterable {
     case trickleCharging = "Trickle Charge"
     case optimizedHold = "Optimized Hold"
     case acPassthrough = "AC Passthrough"
+    case batteryAssisting = "Slow Charger"
     case discharging = "On Battery"
     case full = "Fully Charged"
 
@@ -17,6 +18,7 @@ public enum ChargingPhase: String, Codable, Sendable, CaseIterable {
         case .trickleCharging: return "Trickle"
         case .optimizedHold: return "Optimized"
         case .acPassthrough: return "AC Power"
+        case .batteryAssisting: return "Slow Charger"
         case .discharging: return "Battery"
         case .full: return "Charged"
         }
@@ -29,8 +31,43 @@ public enum ChargingPhase: String, Codable, Sendable, CaseIterable {
         case .trickleCharging: return "bolt.horizontal.fill"
         case .optimizedHold: return "leaf.fill"
         case .acPassthrough: return "powerplug.fill"
+        case .batteryAssisting: return "exclamationmark.triangle.fill"
         case .discharging: return "battery.75percent"
         case .full: return "checkmark.circle.fill"
+        }
+    }
+}
+
+/// Explicit physical energy flow mode so the UI can explain power direction clearly without ambiguity.
+public enum PowerFlowMode: Equatable, Sendable {
+    /// Wall charger supplies the Mac AND puts surplus power into the battery.
+    case charging(chargerWatts: Double, macWatts: Double, batteryChargeWatts: Double)
+    /// Wall charger powers the Mac directly while the battery sits idle (e.g. 100% or 80% Optimized Hold).
+    case acPassthrough(chargerWatts: Double, macWatts: Double)
+    /// Wall charger cannot keep up with Mac load, so the battery is discharging to make up the deficit.
+    case batteryAssistingCharger(chargerWatts: Double, batteryAssistWatts: Double, macWatts: Double)
+    /// Unplugged — battery supplies all power to the Mac.
+    case onBattery(macWatts: Double)
+
+    /// Plain-English one-line summary of where energy is going.
+    public var summary: String {
+        switch self {
+        case .charging:
+            return "Charger powers Mac & charges battery"
+        case .acPassthrough:
+            return "Running on AC — battery bypassed"
+        case .batteryAssistingCharger:
+            return "Charger too slow — battery helping Mac"
+        case .onBattery(let watts):
+            return "Battery powering Mac · \(Self.loadTier(for: watts)) load"
+        }
+    }
+
+    public static func loadTier(for watts: Double) -> String {
+        switch watts {
+        case ..<12.0: return "Light"
+        case 12.0..<30.0: return "Moderate"
+        default: return "Heavy"
         }
     }
 }
@@ -89,7 +126,7 @@ public struct AdapterHardwareInfo: Codable, Sendable, Equatable {
 public struct PowerHistoryPoint: Codable, Sendable, Identifiable, Equatable {
     public let id: UUID
     public let timestamp: Date
-    /// Positive = charging into battery / wall input; Negative = net battery discharge.
+    /// Positive magnitude of live headline power (W) for the curve.
     public let totalWatts: Double
     public let batteryWatts: Double
     public let systemLoadWatts: Double
@@ -117,20 +154,20 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
     public let timestamp: Date
 
     // MARK: - Core Power Metrics
-    /// Total live power entering from the wall adapter (W). Zero when on battery.
+    /// Total live power entering from the wall adapter (W). Zero when unplugged.
     public let adapterInputWatts: Double
     /// Net power flowing into (+) or out of (-) the battery pack (W).
     public let batteryNetWatts: Double
     /// Live power consumed by the MacBook system (SoC, display, peripherals) (W).
     public let systemLoadWatts: Double
 
-    /// Pack or input voltage in Volts (V).
+    /// Battery pack voltage in Volts (V).
     public let voltageV: Double
-    /// Instantaneous battery current in Amperes (A). Positive = charging, negative = discharging.
+    /// Instantaneous battery pack current in Amperes (A). Positive = charging, negative = discharging.
     public let amperageA: Double
-    /// Adapter input voltage in Volts (V) when reported by `PowerTelemetryData`.
+    /// Live USB-PD input voltage in Volts (V), only populated from live input telemetry.
     public let adapterVoltageV: Double?
-    /// Adapter input current in Amperes (A) when reported by `PowerTelemetryData`.
+    /// Live USB-PD input current in Amperes (A), only populated from live input telemetry (never static max contract).
     public let adapterCurrentA: Double?
 
     // MARK: - Battery State & Capacity
@@ -145,11 +182,14 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
     // MARK: - Health & Thermals
     public let cycleCount: Int
     public let designCycleCount: Int
-    public let designCapacityMah: Int
-    public let maxCapacityMah: Int
-    public let currentCapacityMah: Int
-    /// Maximum capacity percentage (`maxCapacityMah / designCapacityMah * 100`).
-    public let batteryHealthPercent: Double
+    /// Factory design capacity in mAh (`nil` if hardware does not expose a battery).
+    public let designCapacityMah: Int?
+    /// Full-charge capacity in mAh (`nil` if unavailable).
+    public let maxCapacityMah: Int?
+    /// Current stored charge in mAh (`nil` if unavailable).
+    public let currentCapacityMah: Int?
+    /// Maximum capacity health percentage (`0...100`, matching macOS System Settings; `nil` if unavailable).
+    public let batteryHealthPercent: Double?
     /// Battery pack temperature in Celsius (`nil` if sensor unavailable).
     public let temperatureC: Double?
     /// Individual battery cell voltages in millivolts, if exposed by `BatteryData.CellVoltage`.
@@ -177,10 +217,10 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
         timeRemainingMinutes: Int?,
         cycleCount: Int,
         designCycleCount: Int = 1000,
-        designCapacityMah: Int,
-        maxCapacityMah: Int,
-        currentCapacityMah: Int,
-        batteryHealthPercent: Double,
+        designCapacityMah: Int?,
+        maxCapacityMah: Int?,
+        currentCapacityMah: Int?,
+        batteryHealthPercent: Double?,
         temperatureC: Double?,
         cellVoltagesMv: [Int] = [],
         thermalLevel: SystemThermalLevel = .nominal,
@@ -216,27 +256,62 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
 
     // MARK: - Computed Display Helpers
 
+    /// Unified, mathematically consistent Power Flow state.
+    public var powerFlowMode: PowerFlowMode {
+        if !isExternalConnected {
+            let draw = max(systemLoadWatts, abs(batteryNetWatts))
+            return .onBattery(macWatts: draw)
+        }
+
+        if batteryNetWatts > 0.3 {
+            let mac = max(systemLoadWatts, 0)
+            let bat = batteryNetWatts
+            let charger = max(adapterInputWatts, mac + bat)
+            return .charging(chargerWatts: charger, macWatts: mac, batteryChargeWatts: bat)
+        }
+
+        if batteryNetWatts < -0.5 {
+            let assist = abs(batteryNetWatts)
+            let charger = max(adapterInputWatts, 0)
+            let mac = max(systemLoadWatts, charger + assist)
+            return .batteryAssistingCharger(chargerWatts: charger, batteryAssistWatts: assist, macWatts: mac)
+        }
+
+        let mac = max(systemLoadWatts, adapterInputWatts)
+        let charger = max(adapterInputWatts, mac)
+        return .acPassthrough(chargerWatts: charger, macWatts: mac)
+    }
+
     /// Headline wattage shown prominently in widgets and the menu bar.
-    /// Shows total wall input when plugged in, or system discharge draw when on battery.
+    /// Always matches the primary source shown in Power Flow (wall charger input when plugged in, battery draw when unplugged).
     public var headlineWatts: Double {
-        if isExternalConnected {
-            return max(adapterInputWatts, max(batteryNetWatts, 0) + systemLoadWatts)
-        } else {
-            return abs(batteryNetWatts) > 0.1 ? abs(batteryNetWatts) : systemLoadWatts
+        switch powerFlowMode {
+        case .charging(let charger, _, _):
+            return charger
+        case .acPassthrough(let charger, _):
+            return charger
+        case .batteryAssistingCharger(let charger, _, let mac):
+            return charger > 0.1 ? charger : mac
+        case .onBattery(let mac):
+            return mac
         }
     }
 
-    /// Headline voltage: prefers USB-PD input voltage when plugged in, otherwise battery pack voltage.
+    /// Headline voltage strictly paired with `displayCurrentA` so V × A is physically consistent.
     public var displayVoltageV: Double {
-        if isExternalConnected, let adapterV = adapterVoltageV, adapterV > 1.0 {
+        if isExternalConnected,
+           let adapterV = adapterVoltageV, adapterV > 1.0,
+           let adapterA = adapterCurrentA, adapterA >= 0.01 {
             return adapterV
         }
         return voltageV
     }
 
-    /// Headline current: prefers USB-PD input current when plugged in, otherwise battery pack current.
+    /// Headline live current strictly paired with `displayVoltageV` (never static adapter max contract).
     public var displayCurrentA: Double {
-        if isExternalConnected, let adapterA = adapterCurrentA, adapterA > 0.05 {
+        if isExternalConnected,
+           let adapterV = adapterVoltageV, adapterV > 1.0,
+           let adapterA = adapterCurrentA, adapterA >= 0.01 {
             return adapterA
         }
         return abs(amperageA)
@@ -253,7 +328,7 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
     /// Fraction of negotiated charger wattage currently utilized (0.0...1.0).
     public var adapterUtilization: Double? {
         guard isExternalConnected, let maxW = adapter?.maxWatts, maxW > 0 else { return nil }
-        return min(max(headlineWatts / Double(maxW), 0), 1)
+        return min(max(adapterInputWatts / Double(maxW), 0), 1)
     }
 
     public func formattedWatts(_ value: Double, signed: Bool = false) -> String {
@@ -262,6 +337,25 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
             return String(format: "%@%.1f W", prefix, abs(value))
         }
         return String(format: "%.1f W", value)
+    }
+
+    public var formattedHealthPercent: String {
+        guard let health = batteryHealthPercent else { return "—" }
+        return String(format: "%.0f%%", health)
+    }
+
+    public var formattedMaxCapacity: String {
+        guard let maxMah = maxCapacityMah else { return "Unavailable" }
+        return "\(maxMah) mAh"
+    }
+
+    public var formattedCapacityDetail: String {
+        guard let maxMah = maxCapacityMah else { return "Unavailable" }
+        let curStr = currentCapacityMah.map { "\($0)" } ?? "—"
+        if let designMah = designCapacityMah {
+            return "\(curStr) / \(maxMah) mAh (Design \(designMah))"
+        }
+        return "\(curStr) / \(maxMah) mAh"
     }
 
     public var formattedETA: String? {
@@ -282,6 +376,7 @@ public struct PowerTelemetry: Codable, Sendable, Equatable {
         case .full: return "100% charged"
         case .optimizedHold: return "Holding at \(batteryPercent)%"
         case .acPassthrough: return "Running on AC"
+        case .batteryAssisting: return "Draining on AC"
         default: return "Calculating…"
         }
     }

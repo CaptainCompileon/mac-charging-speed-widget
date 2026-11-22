@@ -438,12 +438,12 @@ public final class UpdateManager {
 
     // MARK: - Semantic Version Comparison
 
-    public static func normalizeVersion(_ raw: String) -> String {
+    nonisolated public static func normalizeVersion(_ raw: String) -> String {
         raw.trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: "^[vV]", with: "", options: .regularExpression)
     }
 
-    public static func isVersion(_ lhs: String, newerThan rhs: String) -> Bool {
+    nonisolated public static func isVersion(_ lhs: String, newerThan rhs: String) -> Bool {
         let leftParts = normalizeVersion(lhs).split(separator: "-").first?
             .split(separator: ".").compactMap { Int($0) } ?? []
         let rightParts = normalizeVersion(rhs).split(separator: "-").first?

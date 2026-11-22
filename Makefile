@@ -4,11 +4,20 @@ BUILD_DIR := build
 APP_PATH := $(BUILD_DIR)/Build/Products/Release/$(APP_NAME).app
 DMG_PATH := $(BUILD_DIR)/$(APP_NAME).dmg
 
-.PHONY: generate build install dmg clean open
+.PHONY: generate test build install dmg clean open
 
 generate:
 	@command -v xcodegen >/dev/null 2>&1 || { echo "Installing xcodegen via Homebrew..."; brew install xcodegen; }
 	xcodegen generate
+
+test: generate
+	xcodebuild test \
+		-project $(APP_NAME).xcodeproj \
+		-scheme $(SCHEME) \
+		-configuration Debug \
+		-derivedDataPath build-tests \
+		CODE_SIGN_IDENTITY="-" \
+		AD_HOC_CODE_SIGNING_ALLOWED=YES
 
 build: generate
 	xcodebuild -project $(APP_NAME).xcodeproj \

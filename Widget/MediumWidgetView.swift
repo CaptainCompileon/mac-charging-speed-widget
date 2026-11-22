@@ -63,7 +63,7 @@ struct MediumWidgetView: View {
                             .padding(.vertical, 2)
                             .background(Color.primary.opacity(0.07), in: Capsule())
                     }
-                    Text(t.formattedTemperature(useFahrenheit: entry.useFahrenheit))
+                    Text(t.temperatureC != nil ? t.formattedTemperature(useFahrenheit: entry.useFahrenheit) : t.thermalLevel.rawValue)
                         .font(.system(size: 9.5, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
@@ -83,12 +83,14 @@ struct MediumWidgetView: View {
                         .font(.system(size: 10, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
-                    Text("·")
-                        .foregroundStyle(.tertiary)
-                    Text(String(format: "%.0f%%", t.batteryHealthPercent))
-                        .font(.system(size: 10, weight: .semibold, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
+                    if t.batteryHealthPercent != nil {
+                        Text("·")
+                            .foregroundStyle(.tertiary)
+                        Text(t.formattedHealthPercent)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
                 }
             }
             .frame(width: 126)

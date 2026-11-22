@@ -26,6 +26,16 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen generate
 
+      - name: Run Unit Tests (Power Telemetry, Temperature, Health & Updater)
+        run: |
+          xcodebuild test \
+            -project MacChargingSpeed.xcodeproj \
+            -scheme MacChargingSpeed \
+            -configuration Debug \
+            -derivedDataPath build-tests \
+            CODE_SIGN_IDENTITY="-" \
+            AD_HOC_CODE_SIGNING_ALLOWED=YES
+
       - name: Build Release App & WidgetKit Extension
         run: |
           xcodebuild -project MacChargingSpeed.xcodeproj \
